@@ -1,0 +1,206 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket"
+    },
+    "S3scpLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/s3scp-dev-s3scp"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "dev",
+                  "s3scp",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3scp-dev-s3scp:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3scp-dev-s3scp:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:*"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::oscardocuments.zenmd.dev",
+                    "arn:aws:s3:::oscardocuments.zenmd.dev/*"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "s3scp",
+              "dev",
+              "ca-central-1",
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "S3scpLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/s3scp/dev/1545595082681-2018-12-23T19:58:02.681Z/s3scp.zip"
+        },
+        "FunctionName": "s3scp-dev-s3scp",
+        "Handler": "s3scp.process_inbound",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "Runtime": "ruby2.5",
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "INBOUND_DOCUMENT_BUCKET": "oscardocuments.zenmd.dev",
+            "HOST": "35.183.106.205",
+            "USER": "ec2-user",
+            "SSH_KEY": "-----BEGIN RSA PRIVATE KEY-----\r\nMIIEpQIBAAKCAQEA3zOxDUs9o4Y66xIrwZpvjCtulSv7+L5diKJ0F3UedSCBm+AQslq/mLn4yu0/\r\n8ezOjZkm6/ywEL9Fxq4X6fnogINUIx/f8Sg5wvqxSrRf+tPvMKneni6sENq7D9jhG8UHSrJs1YiX\r\nqEQcSX1qGazJaT5TufMGk/eB2lGBoDnhF25PjDEpBj3NcOHpSmFqBWpss2g/gp9XHYpg8NFvednO\r\nHU6U97IH8uDo1X30GP705RSoX4pC1iWAQyKiY2GFzeur3c6Wc4wgR7za3TwFlCZqYBZwPbUWb75u\r\nE3EEkEJcmd6jtZ32AXMy0mfjXEUh0BBNbi48/eI9o7me8jHlQiWWmwIDAQABAoIBACFOAkY8iucC\r\nmXoIDRVnaOuec3K4zHFSXnyL2QzDAhdyEUTkCznBxsMQROpqulbsAeopByDBZLgrAktiINld2+6J\r\nKh3PnMfMO8o3RAsknQm9Y/x77GboCe695Jm5v+U34h2oQAsgxZhrCVmB6DoKiUc18KJXfAzKKssb\r\nzF7PJCItoRw0ku/mHPnNyqnf9KMKo0cJa+o9/1LrjiEJ49gwNvFFX9XFXhMCX+G/cq1cSTZtLcOy\r\ncrsH00YGsZdFX91zYWOh16KbUqdIcto3M8K9Jb8U9iyI5SXH6mjw2arbXmOoT0upc5pe5Z3m6Ofy\r\n5z+JcqZ4qHij+fYraJzBa/Q0P4kCgYEA/4VBhJcbvvWV9ryFpWFOViGXwQ/RlGiSmup1o3XGTS2k\r\nb5epRPgs1T/EO4Hl0X/+cJfM1R0KE2u16w1Qvc5BCk5bKTQhIxgzeMY1mMKVBJiFa7RjzrvE1Jc6\r\nQvfb6vEMvsjfRaZEoByC/zqXEKldm7Soa5vXU+AvRIn93j0AkU8CgYEA357pLChRmZ9t3NWtGsS/\r\nRuClWltnBWl429DmyCpmaF41VaUCZ4BpZFesdq17WFyRij7zlLC92uZmT/v1vDkR1MPoGPecfF8T\r\nAA9hKRilJlEXC5DAGiksuKQ1ONHwjjg1Kh2MXeX+YPNLkYQJqRspRzTQy3V0lIXNPrtl051/mvUC\r\ngYEAjFYJp+K+MGD9XigoVq5csd19VWF0v8e3TTIcLgyPPvAkcc2f/+s15GFDS1OKf0eG3RviOeHb\r\nGNN9dH05rSVMf3aNhtHEqVuvWVOzOBUWdxG1pXPLpU1nS0NLkmBC/oQpddcpGT26Tx2ZrMfnFBWQ\r\n/eV44rES0FQ+YaxQK/DhEO0CgYEAoY+ZHUsf8WKrKDLEtyNQoq+pJ4gD/Xf/VqkuI43moR73X6Ix\r\nA4BWJKXnN3MNO4DdscjbiSDMejudzcnW958vz82egXNb/std2dxCsUNaBj3t7XAuKnh3FAunXB7p\r\nsobPelcQ08JYL8l3XnHL3P5/qy9wbp60lJ269MjFv8b5q4UCgYEAv19PZwNysCGzhewH8KZ0/pvY\r\ni9rUkNgv1qVUBrYhY2tue2xacHrXx6+8qgX9v1QJc4JVs6vRsndi86loQT53nqzGAj5xiZPto0YZ\r\n4yHntAygPaHwPgCqTV+dGfeYy48r6ajBm9qH1TWpDlTIXYrXcOvfeA2b8Rv/Sqt5L1COjPw=\r\n-----END RSA PRIVATE KEY-----",
+            "INBOX_DIR": "/data/"
+          }
+        }
+      },
+      "DependsOn": [
+        "S3scpLogGroup",
+        "IamRoleLambdaExecution"
+      ]
+    },
+    "S3scpLambdaVersion4mhsPcT0PmPzc9KzZtR2HkoYu6Rsb5N9jXTTHfhU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "S3scpLambdaFunction"
+        },
+        "CodeSha256": "TYprMkmV4bsc09tcJeAQBaLliIJ1+s0WPov6mX4hgto="
+      }
+    },
+    "S3scpEventsRuleSchedule1": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "rate(2 minutes)",
+        "State": "ENABLED",
+        "Name": "pollInboundDocuments",
+        "Description": "poll for new documents.",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "S3scpLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "s3scpSchedule"
+          }
+        ]
+      }
+    },
+    "S3scpLambdaPermissionEventsRuleSchedule1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "S3scpLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": {
+          "Fn::Join": [
+            "",
+            [
+              "events.",
+              {
+                "Ref": "AWS::URLSuffix"
+              }
+            ]
+          ]
+        },
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "S3scpEventsRuleSchedule1",
+            "Arn"
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      }
+    },
+    "S3scpLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "S3scpLambdaVersion4mhsPcT0PmPzc9KzZtR2HkoYu6Rsb5N9jXTTHfhU"
+      }
+    }
+  }
+}

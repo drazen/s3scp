@@ -1,0 +1,35 @@
+service: s3scp
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  region: ca-central-1
+  runtime: ruby2.5
+  memory: 256
+
+  # service-wide env vars from env.yml (env.yml in .gitignore!)
+  environment:
+    INBOUND_DOCUMENT_BUCKET: ${file(env.yml):${self:provider.stage}.INBOUND_DOCUMENT_BUCKET}
+    HOST: ${file(env.yml):${self:provider.stage}.HOST}
+    USER: ${file(env.yml):${self:provider.stage}.USER}
+    SSH_KEY: ${file(env.yml):${self:provider.stage}.SSH_KEY}
+    INBOX_DIR: ${file(env.yml):${self:provider.stage}.INBOX_DIR}
+
+  # Lambda function's IAM Role and permissions
+  # FIXME: Tighten up permisssions!
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource:
+        - arn:aws:s3:::${self:provider.environment.INBOUND_DOCUMENT_BUCKET}
+        - arn:aws:s3:::${self:provider.environment.INBOUND_DOCUMENT_BUCKET}/*
+
+functions:
+  s3scp:
+    handler: s3scp.process_inbound
+    events:
+      - schedule:
+          name: pollInboundDocuments
+          description: poll for new documents.
+          rate: rate(2 minutes)
